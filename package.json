@@ -1,0 +1,47 @@
+{
+  "name": "DuinoDCX",
+  "description": "Standalone WIFI remote controller for the Behringer Ultradrive Pro (DCX2496)",
+  "version": "0.0.39",
+  "author": "Lasse Lukkari <lasse.lukkari@gmai.com>",
+  "contributors": [
+    "Ilkka Huhtakallio"
+  ],
+  "repository": "github:lasselukkari/DuinoDCX",
+  "license": "MIT",
+  "devDependencies": {
+    "awot-scripts": "0.0.38"
+  },
+  "dependencies": {
+    "dcx-ui": "^0.0.11"
+  },
+  "scripts": {
+    "build": "awot-static",
+    "flash": "awot-command-line",
+    "upload": "awot-static && awot-command-line"
+  },
+  "awot-static": {
+    "sources": "./node_modules/dcx-ui/dist",
+    "indexFile": "index.html",
+    "sketchDir": "./DuinoDCX",
+    "exclude": [
+      "*.map",
+      "service-worker.js"
+    ]
+  },
+  "awot-command-line": {
+    "sketch": "DuinoDCX/DuinoDCX.ino",
+    "idePath": "/Applications/Arduino.app/Contents/MacOS/arduino",
+    "port": "/dev/cu.Repleo-PL2303-00002014",
+    "board": {
+      "package": "esp32",
+      "arch": "esp32",
+      "board": "esp32"
+    },
+    "action": "upload"
+  },
+  "renovate": {
+    "extends": [
+      "config:base"
+    ]
+  }
+}
