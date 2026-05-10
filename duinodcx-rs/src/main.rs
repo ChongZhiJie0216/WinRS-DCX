@@ -129,7 +129,7 @@ async fn main() -> Result<()> {
 
     // Run Web Server
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
-    log::info!("Server running at http://0.0.0.0:3000. No serial port connected by default.");
+    log::info!("Server running at http://localhost:3000. No serial port connected by default.");
     axum::serve(listener, app).await?;
 
     Ok(())

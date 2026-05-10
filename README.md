@@ -1,7 +1,8 @@
 
 DuinoDCX [![Build Status](https://travis-ci.org/lasselukkari/DuinoDCX.svg?branch=master)](https://travis-ci.org/lasselukkari/DuinoDCX)
-========
-ESP32 based WIFI remote controller for the [Behringer Ultradrive Pro / DCX2496](https://www.behringer.com/p/P0B6H).
+# DuinoDCX
+
+ESP32 based WIFI management controller for the [Behringer Ultradrive Pro / DCX2496](https://www.behringer.com/p/P0B6H).
 
 <img src="https://i.imgur.com/2BB5tPi.png" width="100%" />
 

@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 echo ################################################
-echo # DuinoDCX Rust - Build Script                 #
+echo # DuinoDCX Rust - Management Build Script      #
 echo ################################################
 echo.
 
@@ -16,11 +16,11 @@ if %errorlevel% neq 0 (
 )
 
 :: Try to remove the old executable in root to avoid confusion
-if exist duinodcx-rs.exe (
-    echo [INFO] Removing old duinodcx-rs.exe...
-    del /f /q duinodcx-rs.exe
+if exist duinodcx-management.exe (
+    echo [INFO] Removing old duinodcx-management.exe...
+    del /f /q duinodcx-management.exe
     if %errorlevel% neq 0 (
-        echo [WARN] Could not remove duinodcx-rs.exe. It might be running.
+        echo [WARN] Could not remove duinodcx-management.exe. It might be running.
         echo Please close the application and try again.
         pause
         exit /b 1
@@ -42,7 +42,13 @@ if %errorlevel% neq 0 (
 
 echo.
 echo [INFO] Copying executable to root...
-copy /y target\release\duinodcx-rs.exe ..\duinodcx-rs.exe >nul
+copy /y target\release\duinodcx-management.exe ..\duinodcx-management.exe >nul
+
+:: Copy WebView2Loader.dll if it's found in the target directory (sometimes cargo puts it there)
+if exist target\release\WebView2Loader.dll (
+    echo [INFO] Copying WebView2Loader.dll to root...
+    copy /y target\release\WebView2Loader.dll ..\WebView2Loader.dll >nul
+)
 
 if %errorlevel% neq 0 (
     echo [ERROR] Failed to copy the executable.
@@ -55,7 +61,7 @@ cd ..
 
 echo.
 echo ################################################
-echo # SUCCESS: duinodcx-rs.exe is ready!           #
+echo # SUCCESS: duinodcx-management.exe is ready!   #
 echo ################################################
 echo.
 pause

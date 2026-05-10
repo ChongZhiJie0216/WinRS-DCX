@@ -1,0 +1,2 @@
+cargo:rustc-link-search=native=E:\00-WindowsData\Documents\GitHub\duinodcx\duinodcx-rs\target\release\build\webview2-com-sys-7842ea320594eb7d\out\x64
+cargo:rustc-link-lib=advapi32

@@ -1,6 +1,6 @@
 # Development Setup Guide
 
-This guide will help you set up the development environment for DuinoDCX Rust.
+This guide will help you set up the development environment for DuinoDCX Management.
 
 ## Prerequisites
 
@@ -41,7 +41,7 @@ To build and run this project, you need the following tools installed:
     ```cmd
     build.cmd
     ```
-    This will compile the Rust project in release mode and copy `duinodcx-rs.exe` to the root directory.
+    This will compile the Rust project in release mode and copy `duinodcx-management.exe` to the root directory.
 
 ## Running in Development Mode
 
@@ -57,7 +57,7 @@ To run the project with live logs and without creating a standalone executable:
 ## Key Features
 
 ### Standalone Binary
-The project uses `rust-embed` to include the `dcx-ui` static files directly into the compiled executable. This means `duinodcx-rs.exe` can be distributed as a single file without needing `node_modules`.
+The project uses `rust-embed` to include the `dcx-ui` static files directly into the compiled executable. This means `duinodcx-management.exe` can be distributed as a single file without needing `node_modules`.
 
 ### Auto-Reconnect
 The backend includes logic to monitor the serial connection. If the USB connection to the DCX2496 is lost, it will automatically attempt to reconnect to the last used COM port every 2 seconds.
