@@ -22,14 +22,14 @@
   "awot-static": {
     "sources": "./node_modules/dcx-ui/dist",
     "indexFile": "index.html",
-    "sketchDir": "./DuinoDCX",
+    "sketchDir": "./firmware/DuinoDCX",
     "exclude": [
       "*.map",
       "service-worker.js"
     ]
   },
   "awot-command-line": {
-    "sketch": "DuinoDCX/DuinoDCX.ino",
+    "sketch": "firmware/DuinoDCX/DuinoDCX.ino",
     "idePath": "/Applications/Arduino.app/Contents/MacOS/arduino",
     "port": "/dev/cu.Repleo-PL2303-00002014",
     "board": {

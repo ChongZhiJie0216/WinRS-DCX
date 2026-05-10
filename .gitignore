@@ -20,3 +20,7 @@ yarn-error.log*
 
 .idea/
 .vscode
+
+# Local binaries and cache
+duinodcx-management.exe
+duinodcx-management.exe.WebView2/
