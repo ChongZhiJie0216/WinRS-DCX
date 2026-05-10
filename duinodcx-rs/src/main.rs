@@ -7,7 +7,7 @@ use axum::{
     Router,
 };
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::time::sleep;
 
 mod ultradrive;
@@ -16,6 +16,11 @@ mod locations;
 use crate::ultradrive::Ultradrive;
 
 use serde::{Deserialize, Serialize};
+use rust_embed::RustEmbed;
+
+#[derive(RustEmbed)]
+#[folder = "../node_modules/dcx-ui/dist/"]
+struct Asset;
 
 struct AppState {
     device_manager: Mutex<Ultradrive>,
@@ -46,64 +51,61 @@ async fn main() -> Result<()> {
         .format_timestamp_millis()
         .init();
 
-    // Open Serial Port (Change COM port as needed)
-    let port_name = "COM1"; // Default
-    let baud_rate = 38400;
-
-    let initial_port = match serialport::new(port_name, baud_rate)
-        .timeout(Duration::from_millis(10))
-        .open() {
-            Ok(p) => Some(p),
-            Err(e) => {
-                log::warn!("Failed to open initial port {}: {}. Will start without active port.", port_name, e);
-                None
-            }
-        };
-
-    // Use a dummy port if initial fails, Ultradrive needs a port to start
-    // or we can wrap the port in Option in Ultradrive. 
-    // For now, let's just use a Null port if it fails, but Ultradrive expects Box<dyn SerialPort>.
-    // Better: let's modify Ultradrive to take Option<Box<dyn SerialPort>> or provide a dummy.
-    // Actually, serialport doesn't have a Null port. 
-    // Let's use a more robust approach: keep Ultradrive as is, but handle the first open better.
-    
-    // If we can't open COM4, let's try to find ANY port.
-    let port = if let Some(p) = initial_port {
-        p
-    } else {
-        let ports = serialport::available_ports()?;
-        if let Some(p_info) = ports.first() {
-            log::info!("Trying alternative port: {}", p_info.port_name);
-            serialport::new(&p_info.port_name, baud_rate)
-                .timeout(Duration::from_millis(10))
-                .open()?
-        } else {
-            // If no ports at all, we might need a dummy implementation of SerialPort trait 
-            // or modify Ultradrive. Let's assume there's at least one port for now or it fails.
-            // Actually, let's just bail if NO ports are found, but warn if COM1 specifically fails.
-            anyhow::bail!("No serial ports found and default COM1 failed.");
-        }
-    };
-
-    let port_name_str = port.name().unwrap_or_else(|| port_name.to_string());
-    let current_active_port = port_name_str.clone();
-    let device_manager = Ultradrive::new(port);
+    let device_manager = Ultradrive::new(None);
     let shared_state = Arc::new(AppState {
         device_manager: Mutex::new(device_manager),
-        current_port: Mutex::new(port_name_str),
+        current_port: Mutex::new(String::new()),
     });
 
     // Background Processing Task
     let dm_proc = shared_state.clone();
     tokio::spawn(async move {
+        let mut last_reconnect_attempt = Instant::now();
+        let reconnect_interval = Duration::from_secs(2);
+
         loop {
+            let mut needs_reconnect = false;
+            let mut target_port = String::new();
+
             {
                 if let Ok(mut dm) = dm_proc.device_manager.lock() {
                     if let Err(e) = dm.process_incoming() {
-                        log::error!("Error processing incoming: {:?}", e);
+                        log::error!("Error processing incoming: {:?}. Closing port for reconnect.", e);
+                        dm.close_port();
+                    }
+                    
+                    // Check if we have a target port but no active connection
+                    if dm.get_port_active().is_none() {
+                        if let Ok(current) = dm_proc.current_port.lock() {
+                            if !current.is_empty() {
+                                target_port = current.clone();
+                                needs_reconnect = true;
+                            }
+                        }
                     }
                 }
             }
+
+            if needs_reconnect && last_reconnect_attempt.elapsed() >= reconnect_interval {
+                last_reconnect_attempt = Instant::now();
+                log::info!("Attempting to reconnect to {}...", target_port);
+                
+                let baud_rate = 38400;
+                match serialport::new(&target_port, baud_rate)
+                    .timeout(Duration::from_millis(10))
+                    .open() {
+                        Ok(port) => {
+                            log::info!("Successfully reconnected to {}", target_port);
+                            if let Ok(mut dm) = dm_proc.device_manager.lock() {
+                                dm.set_port(port);
+                            }
+                        }
+                        Err(e) => {
+                            log::debug!("Reconnect attempt failed: {}", e);
+                        }
+                    }
+            }
+
             sleep(Duration::from_millis(10)).await;
         }
     });
@@ -122,15 +124,43 @@ async fn main() -> Result<()> {
         .route("/api/connection", delete(delete_connection))
         .route("/api/settings", get(get_settings))
         .route("/api/settings", patch(update_settings))
-        .fallback_service(tower_http::services::ServeDir::new("../node_modules/dcx-ui/dist").fallback(tower_http::services::ServeFile::new("../node_modules/dcx-ui/dist/index.html")))
+        .fallback(static_handler)
         .with_state(shared_state);
 
     // Run Web Server
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
-    log::info!("Server running at http://0.0.0.0:3000 using port {}", current_active_port);
+    log::info!("Server running at http://0.0.0.0:3000. No serial port connected by default.");
     axum::serve(listener, app).await?;
 
     Ok(())
+}
+
+async fn static_handler(uri: axum::http::Uri) -> axum::response::Response {
+    let path = uri.path().trim_start_matches('/');
+
+    if path.is_empty() || path == "index.html" {
+        return index_handler().await;
+    }
+
+    match Asset::get(path) {
+        Some(content) => {
+            let mime = mime_guess::from_path(path).first_or_octet_stream();
+            ([(header::CONTENT_TYPE, mime.as_ref())], content.data).into_response()
+        }
+        None => {
+            if path.contains('.') {
+                return (axum::http::StatusCode::NOT_FOUND, "404 Not Found").into_response();
+            }
+            index_handler().await
+        }
+    }
+}
+
+async fn index_handler() -> axum::response::Response {
+    match Asset::get("index.html") {
+        Some(content) => ([(header::CONTENT_TYPE, "text/html")], content.data).into_response(),
+        None => (axum::http::StatusCode::NOT_FOUND, "404 Not Found").into_response(),
+    }
 }
 
 async fn list_ports() -> impl IntoResponse {

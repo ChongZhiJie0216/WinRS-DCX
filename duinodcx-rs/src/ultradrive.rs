@@ -97,7 +97,7 @@ pub struct Ultradrive {
 }
 
 impl Ultradrive {
-    pub fn new(port: Box<dyn SerialPort>) -> Self {
+    pub fn new(port: Option<Box<dyn SerialPort>>) -> Self {
         Self {
             devices: Default::default(),
             dump0: [0; PART_0_LENGTH],
@@ -113,7 +113,7 @@ impl Ultradrive {
             reading_command: false,
             serial_read: 0,
             serial_buffer: [0; PART_0_LENGTH],
-            port: Some(port),
+            port,
         }
     }
 
@@ -401,5 +401,9 @@ impl Ultradrive {
     pub fn close_port(&mut self) {
         self.port = None;
         log::info!("Serial port closed.");
+    }
+
+    pub fn get_port_active(&self) -> Option<&Box<dyn SerialPort>> {
+        self.port.as_ref()
     }
 }
