@@ -21,11 +21,11 @@ Ensure you have [Rust and Cargo](https://rustup.rs/) installed.
 
 To build the executable and set up the workspace:
 1. Run the `scripts\build.cmd` script. This will compile the Rust application, clear necessary caches, and copy the executable to the root directory.
-2. The compiled binary will be placed in the project root as `duinodcx-management.exe`.
+2. The compiled binary will be placed in the project root as `WinRS-DCX-Management.exe`.
 
 ### Running
 
-Run `duinodcx-management.exe` to start the local backend server. Open your web browser to the provided localhost address to access and use the management UI.
+Run `WinRS-DCX-Management.exe` to start the local backend server. Open your web browser to the provided localhost address to access and use the management UI.
 
 ## Acknowledgements
 * **Lasse Lukkari** - Creator of the original DuinoDCX and dcx-ui.

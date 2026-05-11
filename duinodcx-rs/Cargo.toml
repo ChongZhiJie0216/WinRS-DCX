@@ -3,6 +3,10 @@ name = "duinodcx-management"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "WinRS-DCX-Management"
+path = "src/main.rs"
+
 [dependencies]
 anyhow = "1.0"
 log = "0.4"

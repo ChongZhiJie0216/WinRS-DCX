@@ -19,11 +19,11 @@ if %errorlevel% neq 0 (
 )
 
 :: Try to remove the old executable in root to avoid confusion
-if exist duinodcx-management.exe (
-    echo [INFO] Removing old duinodcx-management.exe...
-    del /f /q duinodcx-management.exe
+if exist WinRS-DCX-Management.exe (
+    echo [INFO] Removing old WinRS-DCX-Management.exe...
+    del /f /q WinRS-DCX-Management.exe
     if %errorlevel% neq 0 (
-        echo [WARN] Could not remove duinodcx-management.exe. It might be running.
+        echo [WARN] Could not remove WinRS-DCX-Management.exe. It might be running.
         echo Please close the application and try again.
         pause
         exit /b 1
@@ -31,9 +31,9 @@ if exist duinodcx-management.exe (
 )
 
 :: Try to remove the WebView2 cache to force a clean state
-if exist duinodcx-management.exe.WebView2 (
+if exist WinRS-DCX-Management.exe.WebView2 (
     echo [INFO] Clearing WebView2 cache...
-    rmdir /s /q duinodcx-management.exe.WebView2
+    rmdir /s /q WinRS-DCX-Management.exe.WebView2
 )
 
 cd duinodcx-rs
@@ -54,7 +54,7 @@ if %errorlevel% neq 0 (
 
 echo.
 echo [INFO] Copying executable to root...
-copy /y target\release\duinodcx-management.exe ..\duinodcx-management.exe >nul
+copy /y target\release\WinRS-DCX-Management.exe ..\WinRS-DCX-Management.exe >nul
 
 :: Copy WebView2Loader.dll if it's found in the target directory (sometimes cargo puts it there)
 if exist target\release\WebView2Loader.dll (
@@ -77,7 +77,7 @@ ie4uinit.exe -show
 
 echo.
 echo ################################################
-echo # SUCCESS: duinodcx-management.exe is ready!   #
+echo # SUCCESS: WinRS-DCX-Management.exe is ready!   #
 echo ################################################
 echo.
 pause
