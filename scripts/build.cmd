@@ -71,6 +71,10 @@ if %errorlevel% neq 0 (
 
 cd ..
 
+:: Refresh Windows icon cache so the new icon shows up immediately
+echo [INFO] Refreshing Windows icon cache...
+ie4uinit.exe -show
+
 echo.
 echo ################################################
 echo # SUCCESS: duinodcx-management.exe is ready!   #
