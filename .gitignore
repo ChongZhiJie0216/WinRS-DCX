@@ -1,9 +1,3 @@
-# dependencies
-# 1. 忽略 node_modules 下的所有内容
-/node_modules/*
-
-# 2. 但是不要忽略 dcx-ui 这个文件夹
-!/node_modules/dcx-ui/
 
 # production
 /DuinoDCX/StaticFiles.h
