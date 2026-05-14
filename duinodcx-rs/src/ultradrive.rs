@@ -94,6 +94,7 @@ pub struct Ultradrive {
     serial_read: usize,
     serial_buffer: [u8; PART_0_LENGTH],
     port: Option<Box<dyn SerialPort>>,
+    ws_tx: Option<tokio::sync::broadcast::Sender<Vec<u8>>>,
 }
 
 impl Ultradrive {
@@ -114,7 +115,12 @@ impl Ultradrive {
             serial_read: 0,
             serial_buffer: [0; PART_0_LENGTH],
             port,
+            ws_tx: None,
         }
+    }
+
+    pub fn set_ws_tx(&mut self, tx: tokio::sync::broadcast::Sender<Vec<u8>>) {
+        self.ws_tx = Some(tx);
     }
 
     pub fn process_incoming(&mut self) -> Result<()> {
@@ -126,6 +132,9 @@ impl Ultradrive {
         let mut buf = [0u8; 128];
         match port.read(&mut buf) {
             Ok(n) if n > 0 => {
+                if let Some(tx) = &self.ws_tx {
+                    let _ = tx.send(buf[..n].to_vec());
+                }
                 for i in 0..n {
                     self.read_commands(buf[i]);
                 }
@@ -377,10 +386,12 @@ impl Ultradrive {
                 let value_low = data[VALUE_LOW_BYTE + offset];
                 self.patch_buffer_skeleton(channel, param, value_high, value_low);
             }
-            if let Some(port) = self.port.as_mut() {
-                port.write_all(data)?;
-            }
         }
+        
+        if let Some(port) = self.port.as_mut() {
+            port.write_all(data)?;
+        }
+        
         Ok(())
     }
 
