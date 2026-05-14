@@ -2,7 +2,8 @@
 # production
 /DuinoDCX/StaticFiles.h
 /DuinoDCX/DuinoDCX.ino.esp32.bin
-
+/dcx-parser
+/dcx-ui-new
 # misc
 .DS_Store
 .env.local
