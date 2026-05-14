@@ -279,11 +279,32 @@ async fn list_ports() -> impl IntoResponse {
         Ok(ports) => {
             let mut port_names: Vec<String> = ports.into_iter().map(|p| p.port_name).collect();
             if port_names.is_empty() {
-                port_names = vec!["COM1".into(), "COM2".into(), "COM3".into(), "COM4".into()];
+                #[cfg(target_os = "windows")]
+                {
+                    port_names = vec!["COM1".into(), "COM2".into(), "COM3".into(), "COM4".into()];
+                }
+                #[cfg(not(target_os = "windows"))]
+                {
+                    port_names = vec![
+                        "/dev/ttyUSB0".into(), "/dev/ttyUSB1".into(),
+                        "/dev/ttyS0".into(), "/dev/ttyS1".into(),
+                        "/dev/ttyAMA0".into(), "/dev/ttyACM0".into()
+                    ];
+                }
             }
             axum::Json(port_names).into_response()
         }
-        Err(_) => axum::Json::<Vec<String>>(vec!["COM1".into(), "COM2".into(), "COM3".into(), "COM4".into()]).into_response()
+        Err(_) => {
+            #[cfg(target_os = "windows")]
+            let fallback = vec!["COM1".into(), "COM2".into(), "COM3".into(), "COM4".into()];
+            #[cfg(not(target_os = "windows"))]
+            let fallback = vec![
+                "/dev/ttyUSB0".into(), "/dev/ttyUSB1".into(),
+                "/dev/ttyS0".into(), "/dev/ttyS1".into(),
+                "/dev/ttyAMA0".into(), "/dev/ttyACM0".into()
+            ];
+            axum::Json(fallback).into_response()
+        }
     }
 }
 

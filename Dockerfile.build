@@ -1,0 +1,33 @@
+FROM rust:1.75-slim
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    pkg-config \
+    libssl-dev \
+    python3 \
+    pip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Zig for cross-compilation
+RUN curl -L https://ziglang.org/download/0.11.0/zig-linux-x86_64-0.11.0.tar.xz | tar -xJ -C /usr/local
+ENV PATH="/usr/local/zig-linux-x86_64-0.11.0:${PATH}"
+
+# Install cargo-zigbuild
+RUN cargo install cargo-zigbuild
+
+# Install Node.js for UI build
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs
+
+WORKDIR /app
+
+# Pre-build UI
+COPY package.json .
+COPY dcx-ui-old/package.json dcx-ui-old/
+RUN npm install
+RUN cd dcx-ui-old && npm install
+
+# Command to build everything
+CMD cd dcx-ui-old && npm run build && cd .. && cargo zigbuild --release --target $TARGET
