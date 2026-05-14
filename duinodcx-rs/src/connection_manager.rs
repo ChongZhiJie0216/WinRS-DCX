@@ -71,16 +71,40 @@ impl ConnectionManager {
                             attempt_count += 1;
                             log::info!("Attempting to connect to {} (attempt {}/{})", port_name, attempt_count, max_attempts);
                             
+                            // If connecting at 38400, "prime" the port at 9600 first to wake up the device.
+                            // This resolves issues where the device won't sync at 38400 on cold start.
+                            if *baud == 38400 {
+                                log::info!("Priming port {} at 9600 baud...", port_name);
+                                let prime_res = serialport::new(port_name, 9600)
+                                    .timeout(Duration::from_millis(100))
+                                    .open();
+                                match prime_res {
+                                    Ok(_) => {
+                                        log::info!("Priming successful, waiting for port to reset...");
+                                        tokio::time::sleep(Duration::from_millis(500)).await;
+                                    }
+                                    Err(e) => {
+                                        log::warn!("Priming failed for {}: {}", port_name, e);
+                                    }
+                                }
+                            }
+
                             match serialport::new(port_name, *baud)
-                                .timeout(Duration::from_millis(50))
+                                .timeout(Duration::from_millis(100))
                                 .open() {
-                                    Ok(port) => {
+                                    Ok(mut port) => {
                                         log::info!("Successfully connected to {}", port_name);
+
+                                        // Clear buffers and toggle DTR/RTS to ensure a clean state
+                                        let _ = port.write_data_terminal_ready(true);
+                                        let _ = port.write_request_to_send(true);
+                                        let _ = port.clear(serialport::ClearBuffer::All);
+
                                         dm.set_port(port);
                                         attempt_count = 0;
                                     }
                                     Err(e) => {
-                                        log::debug!("Connection failed for {}: {}", port_name, e);
+                                        log::error!("Connection failed for {}: {}", port_name, e);
                                     }
                                 }
                         }
