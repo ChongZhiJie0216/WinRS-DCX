@@ -1,5 +1,7 @@
 #![allow(non_snake_case)]
 
+mod api;
+
 use dioxus::prelude::*;
 
 fn main() {
