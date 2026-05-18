@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "duinodcx-rs",
+    "dcx-ui"
+]
+resolver = "2"
