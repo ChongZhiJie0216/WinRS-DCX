@@ -12,6 +12,7 @@ pub struct PortUpdate {
     pub port_name: String,
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize, Clone, Debug, PartialEq)]
 pub struct VersionResponse {
     pub version: String,

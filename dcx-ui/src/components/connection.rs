@@ -9,7 +9,7 @@ pub fn ConnectionPanel() -> Element {
     let mut is_connected = use_signal(|| false);
 
     // Initial load
-    use_resource(move || async move {
+    let _ = use_resource(move || async move {
         if let Ok(p) = fetch_ports().await {
             ports.set(p.clone());
             if !p.is_empty() {
