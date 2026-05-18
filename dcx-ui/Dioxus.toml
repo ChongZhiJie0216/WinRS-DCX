@@ -1,0 +1,9 @@
+[application]
+name = "dcx-ui"
+default_theme = "light"
+
+[web.app]
+title = "WinRS-DCX UI"
+
+[web.watcher]
+watch_path = ["src"]

@@ -1,0 +1,9 @@
+C:\Users\ChongZhiJie\Documents\Github\WinRS-DCX\dcx-ui\target\debug\deps\cargo_metadata-b45b3cc0cda70345.d: C:\Users\ChongZhiJie\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_metadata-0.18.1\src\lib.rs C:\Users\ChongZhiJie\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_metadata-0.18.1\src\dependency.rs C:\Users\ChongZhiJie\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_metadata-0.18.1\src\diagnostic.rs C:\Users\ChongZhiJie\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_metadata-0.18.1\src\errors.rs C:\Users\ChongZhiJie\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_metadata-0.18.1\src\messages.rs
+
+C:\Users\ChongZhiJie\Documents\Github\WinRS-DCX\dcx-ui\target\debug\deps\libcargo_metadata-b45b3cc0cda70345.rmeta: C:\Users\ChongZhiJie\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_metadata-0.18.1\src\lib.rs C:\Users\ChongZhiJie\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_metadata-0.18.1\src\dependency.rs C:\Users\ChongZhiJie\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_metadata-0.18.1\src\diagnostic.rs C:\Users\ChongZhiJie\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_metadata-0.18.1\src\errors.rs C:\Users\ChongZhiJie\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_metadata-0.18.1\src\messages.rs
+
+C:\Users\ChongZhiJie\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_metadata-0.18.1\src\lib.rs:
+C:\Users\ChongZhiJie\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_metadata-0.18.1\src\dependency.rs:
+C:\Users\ChongZhiJie\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_metadata-0.18.1\src\diagnostic.rs:
+C:\Users\ChongZhiJie\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_metadata-0.18.1\src\errors.rs:
+C:\Users\ChongZhiJie\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\cargo_metadata-0.18.1\src\messages.rs:
