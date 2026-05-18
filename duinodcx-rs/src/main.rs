@@ -14,6 +14,7 @@ use tokio::time::sleep;
 mod ultradrive;
 mod locations;
 mod connection_manager;
+mod api;
 
 use crate::ultradrive::Ultradrive;
 use crate::connection_manager::{ConnectionManager, ConnectionCommand};
@@ -296,9 +297,9 @@ async fn list_ports() -> impl IntoResponse {
         }
         Err(_) => {
             #[cfg(target_os = "windows")]
-            let fallback = vec!["COM1".into(), "COM2".into(), "COM3".into(), "COM4".into()];
+            let fallback: Vec<String> = vec!["COM1".into(), "COM2".into(), "COM3".into(), "COM4".into()];
             #[cfg(not(target_os = "windows"))]
-            let fallback = vec![
+            let fallback: Vec<String> = vec![
                 "/dev/ttyUSB0".into(), "/dev/ttyUSB1".into(),
                 "/dev/ttyS0".into(), "/dev/ttyS1".into(),
                 "/dev/ttyAMA0".into(), "/dev/ttyACM0".into()
