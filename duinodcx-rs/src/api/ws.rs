@@ -1,22 +1,28 @@
 // duinodcx-rs/src/api/ws.rs
+use crate::AppState;
 use axum::{
-    extract::{State, ws::{WebSocketUpgrade, WebSocket, Message}},
+    extract::{
+        ws::{Message, WebSocket, WebSocketUpgrade},
+        State,
+    },
     response::IntoResponse,
 };
 use std::sync::Arc;
-use crate::AppState;
 
-pub async fn ws_handler(ws: WebSocketUpgrade, State(state): State<Arc<AppState>>) -> impl IntoResponse {
+pub async fn ws_handler(
+    ws: WebSocketUpgrade,
+    State(state): State<Arc<AppState>>,
+) -> impl IntoResponse {
     ws.on_upgrade(|socket| handle_socket(socket, state))
 }
 
 pub async fn handle_socket(mut socket: WebSocket, state: Arc<AppState>) {
     let mut rx = state.ws_tx.subscribe();
-    
+
     loop {
         tokio::select! {
             Ok(msg) = rx.recv() => {
-                if socket.send(Message::Binary(msg.into())).await.is_err() {
+                if socket.send(Message::Binary(msg)).await.is_err() {
                     break;
                 }
             }

@@ -1,7 +1,7 @@
-use std::sync::Arc;
-use tokio::sync::{mpsc, Mutex};
-use std::time::Duration;
 use anyhow::Result;
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::{mpsc, Mutex};
 
 pub enum ConnectionCommand {
     Connect { port: String, baud_rate: u32 },
@@ -60,17 +60,25 @@ impl ConnectionManager {
                         if port_name.trim().is_empty() {
                             continue;
                         }
-                        
+
                         let mut dm = device_manager.lock().await;
                         if dm.get_port_active().is_none() {
                             if attempt_count >= max_attempts {
-                                log::warn!("Connection timeout reached for {}. Stopping auto-reconnect.", port_name);
+                                log::warn!(
+                                    "Connection timeout reached for {}. Stopping auto-reconnect.",
+                                    port_name
+                                );
                                 continue;
                             }
 
                             attempt_count += 1;
-                            log::info!("Attempting to connect to {} (attempt {}/{})", port_name, attempt_count, max_attempts);
-                            
+                            log::info!(
+                                "Attempting to connect to {} (attempt {}/{})",
+                                port_name,
+                                attempt_count,
+                                max_attempts
+                            );
+
                             // If connecting at 38400, "prime" the port at 9600 first to wake up the device.
                             // This resolves issues where the device won't sync at 38400 on cold start.
                             if *baud == 38400 {
@@ -80,7 +88,9 @@ impl ConnectionManager {
                                     .open();
                                 match prime_res {
                                     Ok(_) => {
-                                        log::info!("Priming successful, waiting for port to reset...");
+                                        log::info!(
+                                            "Priming successful, waiting for port to reset..."
+                                        );
                                         tokio::time::sleep(Duration::from_millis(500)).await;
                                     }
                                     Err(e) => {
@@ -91,22 +101,23 @@ impl ConnectionManager {
 
                             match serialport::new(port_name, *baud)
                                 .timeout(Duration::from_millis(100))
-                                .open() {
-                                    Ok(mut port) => {
-                                        log::info!("Successfully connected to {}", port_name);
+                                .open()
+                            {
+                                Ok(mut port) => {
+                                    log::info!("Successfully connected to {}", port_name);
 
-                                        // Clear buffers and toggle DTR/RTS to ensure a clean state
-                                        let _ = port.write_data_terminal_ready(true);
-                                        let _ = port.write_request_to_send(true);
-                                        let _ = port.clear(serialport::ClearBuffer::All);
+                                    // Clear buffers and toggle DTR/RTS to ensure a clean state
+                                    let _ = port.write_data_terminal_ready(true);
+                                    let _ = port.write_request_to_send(true);
+                                    let _ = port.clear(serialport::ClearBuffer::All);
 
-                                        dm.set_port(port);
-                                        attempt_count = 0;
-                                    }
-                                    Err(e) => {
-                                        log::error!("Connection failed for {}: {}", port_name, e);
-                                    }
+                                    dm.set_port(port);
+                                    attempt_count = 0;
                                 }
+                                Err(e) => {
+                                    log::error!("Connection failed for {}: {}", port_name, e);
+                                }
+                            }
                         }
                     }
                 }
@@ -117,6 +128,9 @@ impl ConnectionManager {
     }
 
     pub async fn send_command(&self, cmd: ConnectionCommand) -> Result<()> {
-        self.command_tx.send(cmd).await.map_err(|e| anyhow::anyhow!(e))
+        self.command_tx
+            .send(cmd)
+            .await
+            .map_err(|e| anyhow::anyhow!(e))
     }
 }

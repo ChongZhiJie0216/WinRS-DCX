@@ -8,14 +8,18 @@ pub struct Asset;
 
 pub async fn static_handler(uri: axum::http::Uri) -> axum::response::Response {
     let path = uri.path().trim_start_matches('/');
-    if path.is_empty() || path == "index.html" { return index_handler().await; }
+    if path.is_empty() || path == "index.html" {
+        return index_handler().await;
+    }
     match Asset::get(path) {
         Some(content) => {
             let mime = mime_guess::from_path(path).first_or_octet_stream();
             ([(header::CONTENT_TYPE, mime.as_ref())], content.data).into_response()
         }
         None => {
-            if path.contains('.') { return (axum::http::StatusCode::NOT_FOUND, "404 Not Found").into_response(); }
+            if path.contains('.') {
+                return (axum::http::StatusCode::NOT_FOUND, "404 Not Found").into_response();
+            }
             index_handler().await
         }
     }
@@ -115,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
 "#;
             let new_html = html_str.replace("</body>", injected_script);
             ([(header::CONTENT_TYPE, "text/html")], new_html).into_response()
-        },
+        }
         None => (axum::http::StatusCode::NOT_FOUND, "404 Not Found").into_response(),
     }
 }

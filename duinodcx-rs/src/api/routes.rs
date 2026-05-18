@@ -1,4 +1,6 @@
 // duinodcx-rs/src/api/routes.rs
+use crate::connection_manager::ConnectionCommand;
+use crate::AppState;
 use axum::{
     extract::{Form, State},
     http::header,
@@ -6,8 +8,6 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use crate::AppState;
-use crate::connection_manager::ConnectionCommand;
 
 #[derive(Deserialize)]
 pub struct PortUpdate {
@@ -57,7 +57,10 @@ pub async fn get_version() -> impl IntoResponse {
 }
 
 pub async fn update_firmware() -> impl IntoResponse {
-    (axum::http::StatusCode::OK, "Firmware update received (Simulated)")
+    (
+        axum::http::StatusCode::OK,
+        "Firmware update received (Simulated)",
+    )
 }
 
 pub async fn list_ports() -> impl IntoResponse {
@@ -72,9 +75,12 @@ pub async fn list_ports() -> impl IntoResponse {
                 #[cfg(not(target_os = "windows"))]
                 {
                     port_names = vec![
-                        "/dev/ttyUSB0".into(), "/dev/ttyUSB1".into(),
-                        "/dev/ttyS0".into(), "/dev/ttyS1".into(),
-                        "/dev/ttyAMA0".into(), "/dev/ttyACM0".into()
+                        "/dev/ttyUSB0".into(),
+                        "/dev/ttyUSB1".into(),
+                        "/dev/ttyS0".into(),
+                        "/dev/ttyS1".into(),
+                        "/dev/ttyAMA0".into(),
+                        "/dev/ttyACM0".into(),
                     ];
                 }
             }
@@ -82,23 +88,33 @@ pub async fn list_ports() -> impl IntoResponse {
         }
         Err(_) => {
             #[cfg(target_os = "windows")]
-            let fallback: Vec<String> = vec!["COM1".into(), "COM2".into(), "COM3".into(), "COM4".into()];
+            let fallback: Vec<String> =
+                vec!["COM1".into(), "COM2".into(), "COM3".into(), "COM4".into()];
             #[cfg(not(target_os = "windows"))]
             let fallback: Vec<String> = vec![
-                "/dev/ttyUSB0".into(), "/dev/ttyUSB1".into(),
-                "/dev/ttyS0".into(), "/dev/ttyS1".into(),
-                "/dev/ttyAMA0".into(), "/dev/ttyACM0".into()
+                "/dev/ttyUSB0".into(),
+                "/dev/ttyUSB1".into(),
+                "/dev/ttyS0".into(),
+                "/dev/ttyS1".into(),
+                "/dev/ttyAMA0".into(),
+                "/dev/ttyACM0".into(),
             ];
             axum::Json(fallback).into_response()
         }
     }
 }
 
-pub async fn update_port(State(state): State<Arc<AppState>>, axum::Json(payload): axum::Json<PortUpdate>) -> impl IntoResponse {
-    let _ = state.connection_manager.send_command(ConnectionCommand::Connect { 
-        port: payload.port_name.clone(), 
-        baud_rate: 38400 
-    }).await;
+pub async fn update_port(
+    State(state): State<Arc<AppState>>,
+    axum::Json(payload): axum::Json<PortUpdate>,
+) -> impl IntoResponse {
+    let _ = state
+        .connection_manager
+        .send_command(ConnectionCommand::Connect {
+            port: payload.port_name.clone(),
+            baud_rate: 38400,
+        })
+        .await;
     let mut current = state.current_port.lock().await;
     *current = payload.port_name;
     (axum::http::StatusCode::OK, "Port updated")
@@ -106,22 +122,47 @@ pub async fn update_port(State(state): State<Arc<AppState>>, axum::Json(payload)
 
 pub async fn get_connection(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let current = state.current_port.lock().await;
-    axum::Json(ConnectionResponse { current: current.clone(), ip: "Serial".into() })
+    axum::Json(ConnectionResponse {
+        current: current.clone(),
+        ip: "Serial".into(),
+    })
 }
 
 pub async fn delete_connection(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let _ = state.connection_manager.send_command(ConnectionCommand::Disconnect).await;
+    let _ = state
+        .connection_manager
+        .send_command(ConnectionCommand::Disconnect)
+        .await;
     let mut current = state.current_port.lock().await;
     *current = String::new();
-    axum::Json(ConnectionResponse { current: String::new(), ip: "Disconnected".into() })
+    axum::Json(ConnectionResponse {
+        current: String::new(),
+        ip: "Disconnected".into(),
+    })
 }
 
-pub async fn update_connection(State(state): State<Arc<AppState>>, Form(payload): Form<ConnectionUpdate>) -> impl IntoResponse {
-    let baud_rate = payload.password.as_deref().and_then(|s| s.parse::<u32>().ok()).unwrap_or(38400);
-    let _ = state.connection_manager.send_command(ConnectionCommand::Connect { port: payload.ssid.clone(), baud_rate }).await;
+pub async fn update_connection(
+    State(state): State<Arc<AppState>>,
+    Form(payload): Form<ConnectionUpdate>,
+) -> impl IntoResponse {
+    let baud_rate = payload
+        .password
+        .as_deref()
+        .and_then(|s| s.parse::<u32>().ok())
+        .unwrap_or(38400);
+    let _ = state
+        .connection_manager
+        .send_command(ConnectionCommand::Connect {
+            port: payload.ssid.clone(),
+            baud_rate,
+        })
+        .await;
     let mut current_port = state.current_port.lock().await;
     *current_port = payload.ssid.clone();
-    axum::Json(ConnectionResponse { current: payload.ssid, ip: format!("Serial ({})", baud_rate) })
+    axum::Json(ConnectionResponse {
+        current: payload.ssid,
+        ip: format!("Serial ({})", baud_rate),
+    })
 }
 
 pub async fn get_state(State(state): State<Arc<AppState>>) -> impl IntoResponse {
@@ -145,23 +186,46 @@ pub async fn select_device(State(state): State<Arc<AppState>>, body: String) -> 
         let mut dm = state.device_manager.lock().await;
         dm.set_selected(id);
         (axum::http::StatusCode::NO_CONTENT, "")
-    } else { (axum::http::StatusCode::BAD_REQUEST, "Invalid device ID") }
+    } else {
+        (axum::http::StatusCode::BAD_REQUEST, "Invalid device ID")
+    }
 }
 
-pub async fn create_direct_command(State(state): State<Arc<AppState>>, body: axum::body::Bytes) -> impl IntoResponse {
+pub async fn create_direct_command(
+    State(state): State<Arc<AppState>>,
+    body: axum::body::Bytes,
+) -> impl IntoResponse {
     let mut dm = state.device_manager.lock().await;
-    if let Err(_) = dm.process_outgoing(&body) { return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Failed").into_response(); }
+    if dm.process_outgoing(&body).is_err() {
+        return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Failed").into_response();
+    }
     (axum::http::StatusCode::NO_CONTENT, "").into_response()
 }
 
 pub async fn get_settings(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let current_port = state.current_port.lock().await;
-    axum::Json(SettingsResponse { ap_ssid: current_port.clone(), ap_password: "38400".into(), auth: "Basic YWRtaW46YWRtaW4=".into(), mdns_host: "ultradrive".into(), flow_control: "0".into(), auto_disable_ap: "0".into() })
+    axum::Json(SettingsResponse {
+        ap_ssid: current_port.clone(),
+        ap_password: "38400".into(),
+        auth: "Basic YWRtaW46YWRtaW4=".into(),
+        mdns_host: "ultradrive".into(),
+        flow_control: "0".into(),
+        auto_disable_ap: "0".into(),
+    })
 }
 
-pub async fn update_settings(State(state): State<Arc<AppState>>, Form(payload): Form<SettingsUpdate>) -> impl IntoResponse {
+pub async fn update_settings(
+    State(state): State<Arc<AppState>>,
+    Form(payload): Form<SettingsUpdate>,
+) -> impl IntoResponse {
     let baud_rate = payload.ap_password.parse::<u32>().unwrap_or(38400);
-    let _ = state.connection_manager.send_command(ConnectionCommand::Connect { port: payload.ap_ssid.clone(), baud_rate }).await;
+    let _ = state
+        .connection_manager
+        .send_command(ConnectionCommand::Connect {
+            port: payload.ap_ssid.clone(),
+            baud_rate,
+        })
+        .await;
     let mut current_port = state.current_port.lock().await;
     *current_port = payload.ap_ssid.clone();
     (axum::http::StatusCode::OK, "Settings updated")

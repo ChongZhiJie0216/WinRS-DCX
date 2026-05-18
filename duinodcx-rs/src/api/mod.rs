@@ -1,14 +1,14 @@
 // duinodcx-rs/src/api/mod.rs
+pub mod routes;
 pub mod ui;
 pub mod ws;
-pub mod routes;
 
+use crate::AppState;
 use axum::{
     routing::{delete, get, patch, post, put},
     Router,
 };
 use std::sync::Arc;
-use crate::AppState;
 
 pub fn setup_router(state: Arc<AppState>) -> Router {
     Router::new()

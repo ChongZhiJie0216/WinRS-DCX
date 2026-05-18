@@ -1,17 +1,17 @@
 // duinodcx-rs/src/main.rs
 use anyhow::Result;
 use std::sync::Arc;
-use tokio::sync::{Mutex, broadcast};
 use std::time::Duration;
+use tokio::sync::{broadcast, Mutex};
 use tokio::time::sleep;
 
-mod ultradrive;
-mod locations;
-mod connection_manager;
 mod api;
+mod connection_manager;
+mod locations;
+mod ultradrive;
 
-use crate::ultradrive::Ultradrive;
 use crate::connection_manager::ConnectionManager;
+use crate::ultradrive::Ultradrive;
 
 pub struct AppState {
     pub device_manager: Arc<Mutex<Ultradrive>>,
@@ -27,13 +27,14 @@ async fn main() -> Result<()> {
         .init();
 
     let (ws_tx, _) = broadcast::channel(100);
-    
+
     let mut dm = Ultradrive::new(None);
     dm.set_ws_tx(ws_tx.clone());
     let device_manager = Arc::new(Mutex::new(dm));
-    
-    let connection_manager = ConnectionManager::new(device_manager.clone(), Duration::from_secs(30));
-    
+
+    let connection_manager =
+        ConnectionManager::new(device_manager.clone(), Duration::from_secs(30));
+
     let shared_state = Arc::new(AppState {
         device_manager: device_manager.clone(),
         connection_manager,

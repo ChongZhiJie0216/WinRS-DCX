@@ -1,7 +1,7 @@
-use std::time::{Duration, Instant};
 use anyhow::Result;
 use serialport::SerialPort;
 use std::io::{Read, Write};
+use std::time::{Duration, Instant};
 
 pub const MAX_DEVICES: usize = 16;
 pub const PING_INTERVAL: Duration = Duration::from_millis(1000);
@@ -135,8 +135,8 @@ impl Ultradrive {
                 if let Some(tx) = &self.ws_tx {
                     let _ = tx.send(buf[..n].to_vec());
                 }
-                for i in 0..n {
-                    self.read_commands(buf[i]);
+                for &b in buf.iter().take(n) {
+                    self.read_commands(b);
                 }
             }
             Ok(_) => {}
@@ -153,21 +153,30 @@ impl Ultradrive {
             return Ok(());
         }
 
-        if self.last_search.map_or(true, |ls| now.duration_since(ls) >= SEARCH_INTERVAL) {
+        if self
+            .last_search
+            .is_none_or(|ls| now.duration_since(ls) >= SEARCH_INTERVAL)
+        {
             log::info!("Searching for devices.");
             self.last_search = Some(now);
             self.search()?;
             return Ok(());
         }
 
-        if self.last_ping.map_or(true, |lp| now.duration_since(lp) >= PING_INTERVAL) {
+        if self
+            .last_ping
+            .is_none_or(|lp| now.duration_since(lp) >= PING_INTERVAL)
+        {
             self.last_ping = Some(now);
             log::debug!("Pinging selected device.");
             self.ping(self.selected_device as u8)?;
             return Ok(());
         }
 
-        if self.last_resync.map_or(true, |lr| now.duration_since(lr) >= RESYNC_INTERVAL) {
+        if self
+            .last_resync
+            .is_none_or(|lr| now.duration_since(lr) >= RESYNC_INTERVAL)
+        {
             if let Some(last_resp) = self.devices[self.selected_device].last_response {
                 if now.duration_since(last_resp) < TIMEOUT_TIME {
                     self.last_resync = Some(now);
@@ -201,7 +210,7 @@ impl Ultradrive {
         if b == TERMINATOR {
             log::debug!("Received end of data from device");
             self.reading_command = false;
-            
+
             // Standard Behringer Header: [0xF0, 0x00, 0x20, 0x32, ID]
             // We check the first 4 bytes.
             let vendor_header = [0xF0, 0x00, 0x20, 0x32];
@@ -211,14 +220,14 @@ impl Ultradrive {
 
             let command = self.serial_buffer[COMMAND_BYTE];
             match command {
-                SEARCH_RESPONSE => {
-                    if self.serial_read == SEARCH_RESPONSE_LENGTH {
-                        log::info!("Received search response");
-                        let device_id = self.serial_buffer[ID_BYTE] as usize;
-                        if device_id < MAX_DEVICES {
-                            self.devices[device_id].last_response = Some(Instant::now());
-                            self.devices[device_id].response.copy_from_slice(&self.serial_buffer[..SEARCH_RESPONSE_LENGTH]);
-                        }
+                SEARCH_RESPONSE if self.serial_read == SEARCH_RESPONSE_LENGTH => {
+                    log::info!("Received search response");
+                    let device_id = self.serial_buffer[ID_BYTE] as usize;
+                    if device_id < MAX_DEVICES {
+                        self.devices[device_id].last_response = Some(Instant::now());
+                        self.devices[device_id]
+                            .response
+                            .copy_from_slice(&self.serial_buffer[..SEARCH_RESPONSE_LENGTH]);
                     }
                 }
                 DUMP_RESPONSE => {
@@ -226,22 +235,23 @@ impl Ultradrive {
                     if part == 0 {
                         if !self.invalidate_sync && self.serial_read == PART_0_LENGTH {
                             log::info!("Received state part 0");
-                            self.dump0.copy_from_slice(&self.serial_buffer[..PART_0_LENGTH]);
+                            self.dump0
+                                .copy_from_slice(&self.serial_buffer[..PART_0_LENGTH]);
                         }
                     } else if part == 1 {
                         if self.invalidate_sync {
                             self.invalidate_sync = false;
                         } else if self.serial_read == PART_1_LENGTH {
                             log::info!("Received state part 1");
-                            self.dump1.copy_from_slice(&self.serial_buffer[..PART_1_LENGTH]);
+                            self.dump1
+                                .copy_from_slice(&self.serial_buffer[..PART_1_LENGTH]);
                         }
                     }
                 }
-                PING_RESPONSE => {
-                    if self.serial_read == PING_RESPONSE_LENGTH {
-                        log::info!("Received ping response");
-                        self.ping_response.copy_from_slice(&self.serial_buffer[..PING_RESPONSE_LENGTH]);
-                    }
+                PING_RESPONSE if self.serial_read == PING_RESPONSE_LENGTH => {
+                    log::info!("Received ping response");
+                    self.ping_response
+                        .copy_from_slice(&self.serial_buffer[..PING_RESPONSE_LENGTH]);
                 }
                 DIRECT_COMMAND => {
                     let count = self.serial_buffer[PARAM_COUNT_BYTE] as usize;
@@ -261,20 +271,24 @@ impl Ultradrive {
     }
 
     fn patch_buffer_skeleton(&mut self, channel: u8, param: u8, high: u8, low: u8) {
-        use crate::locations::{SETUP_LOCATIONS, INPUT_LOCATIONS, OUTPUT_LOCATIONS};
+        use crate::locations::{INPUT_LOCATIONS, OUTPUT_LOCATIONS, SETUP_LOCATIONS};
 
         if channel == 0 {
-            let index = if param <= 11 { param as i32 - 2 } else { param as i32 - 10 };
+            let index = if param <= 11 {
+                param as i32 - 2
+            } else {
+                param as i32 - 10
+            };
             if index >= 0 && index < SETUP_LOCATIONS.len() as i32 {
                 self.patch_buffer(low, high, SETUP_LOCATIONS[index as usize]);
             }
-        } else if channel >= 1 && channel <= 4 {
+        } else if (1..=4).contains(&channel) {
             let channel_idx = (channel - 1) as usize;
             let param_idx = (param as i32 - 2) as usize;
             if param_idx < INPUT_LOCATIONS[channel_idx].len() {
                 self.patch_buffer(low, high, INPUT_LOCATIONS[channel_idx][param_idx]);
             }
-        } else if channel >= 5 && channel <= 10 {
+        } else if (5..=10).contains(&channel) {
             let channel_idx = (channel - 5) as usize;
             let param_idx = (param as i32 - 2) as usize;
             if param_idx < OUTPUT_LOCATIONS[channel_idx].len() {
@@ -284,11 +298,19 @@ impl Ultradrive {
     }
 
     pub fn patch_buffer(&mut self, low: u8, high: u8, l: DataLocation) {
-        let dump: &mut [u8] = if l.low.part == 0 { &mut self.dump0 } else { &mut self.dump1 };
+        let dump: &mut [u8] = if l.low.part == 0 {
+            &mut self.dump0
+        } else {
+            &mut self.dump1
+        };
         dump[l.low.byte as usize] = low;
 
         if l.middle.byte >= 0 {
-            let dump_m: &mut [u8] = if l.middle.part == 0 { &mut self.dump0 } else { &mut self.dump1 };
+            let dump_m: &mut [u8] = if l.middle.part == 0 {
+                &mut self.dump0
+            } else {
+                &mut self.dump1
+            };
             if (high & 1) != 0 {
                 dump_m[l.middle.byte as usize] |= 1 << l.middle.index;
             } else {
@@ -297,7 +319,11 @@ impl Ultradrive {
         }
 
         if l.high.byte >= 0 {
-            let dump_h: &mut [u8] = if l.high.part == 0 { &mut self.dump0 } else { &mut self.dump1 };
+            let dump_h: &mut [u8] = if l.high.part == 0 {
+                &mut self.dump0
+            } else {
+                &mut self.dump1
+            };
             dump_h[l.high.byte as usize] = high >> 1;
         }
     }
@@ -312,7 +338,9 @@ impl Ultradrive {
 
     pub fn ping(&mut self, device_id: u8) -> Result<()> {
         if let Some(port) = self.port.as_mut() {
-            let cmd = [0xF0, 0x00, 0x20, 0x32, device_id, 0x0E, 0x44, 0x00, 0x00, TERMINATOR];
+            let cmd = [
+                0xF0, 0x00, 0x20, 0x32, device_id, 0x0E, 0x44, 0x00, 0x00, TERMINATOR,
+            ];
             port.write_all(&cmd)?;
         }
         Ok(())
@@ -320,7 +348,9 @@ impl Ultradrive {
 
     pub fn dump(&mut self, device_id: u8, part: u8) -> Result<()> {
         if let Some(port) = self.port.as_mut() {
-            let cmd = [0xF0, 0x00, 0x20, 0x32, device_id, 0x0E, 0x50, 0x01, 0x00, part, TERMINATOR];
+            let cmd = [
+                0xF0, 0x00, 0x20, 0x32, device_id, 0x0E, 0x50, 0x01, 0x00, part, TERMINATOR,
+            ];
             port.write_all(&cmd)?;
         }
         Ok(())
@@ -328,7 +358,9 @@ impl Ultradrive {
 
     pub fn set_transmit_mode(&mut self, device_id: u8) -> Result<()> {
         if let Some(port) = self.port.as_mut() {
-            let cmd = [0xF0, 0x00, 0x20, 0x32, device_id, 0x0E, 0x3F, 0x0C, 0x00, TERMINATOR];
+            let cmd = [
+                0xF0, 0x00, 0x20, 0x32, device_id, 0x0E, 0x3F, 0x0C, 0x00, TERMINATOR,
+            ];
             port.write_all(&cmd)?;
         }
         Ok(())
@@ -387,11 +419,11 @@ impl Ultradrive {
                 self.patch_buffer_skeleton(channel, param, value_high, value_low);
             }
         }
-        
+
         if let Some(port) = self.port.as_mut() {
             port.write_all(data)?;
         }
-        
+
         Ok(())
     }
 
@@ -414,7 +446,7 @@ impl Ultradrive {
         log::info!("Serial port closed.");
     }
 
-    pub fn get_port_active(&self) -> Option<&Box<dyn SerialPort>> {
-        self.port.as_ref()
+    pub fn get_port_active(&self) -> Option<&dyn SerialPort> {
+        self.port.as_deref()
     }
 }
