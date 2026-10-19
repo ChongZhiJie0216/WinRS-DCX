@@ -63,6 +63,15 @@ pub struct DataLocation {
     pub high: HighByte,
 }
 
+/// Number of 4-byte parameter groups in a direct-command message (TERMINATOR
+/// included), capped to what the message really holds so a corrupt count
+/// byte cannot index past the end of the buffer.
+fn param_count(message: &[u8]) -> usize {
+    let declared = message[PARAM_COUNT_BYTE] as usize;
+    let available = message.len().saturating_sub(CHANNEL_BYTE + 1) / 4;
+    declared.min(available)
+}
+
 struct Device {
     last_response: Option<Instant>,
     response: [u8; SEARCH_RESPONSE_LENGTH],
@@ -124,24 +133,34 @@ impl Ultradrive {
     }
 
     pub fn process_incoming(&mut self) -> Result<()> {
-        let port = match self.port.as_mut() {
-            Some(p) => p,
-            None => return Ok(()),
-        };
-
-        let mut buf = [0u8; 128];
-        match port.read(&mut buf) {
-            Ok(n) if n > 0 => {
-                if let Some(tx) = &self.ws_tx {
-                    let _ = tx.send(buf[..n].to_vec());
+        // Like the Arduino `while (serial->available())`: drain only what is
+        // already buffered, so the read never blocks while the mutex is held.
+        let mut buf = [0u8; 256];
+        loop {
+            let n = {
+                let port = match self.port.as_mut() {
+                    Some(p) => p,
+                    None => return Ok(()),
+                };
+                let available = (port.bytes_to_read()? as usize).min(buf.len());
+                if available == 0 {
+                    break;
                 }
-                for &b in buf.iter().take(n) {
-                    self.read_commands(b);
+                match port.read(&mut buf[..available]) {
+                    Ok(n) => n,
+                    Err(e) if e.kind() == std::io::ErrorKind::TimedOut => 0,
+                    Err(e) => return Err(e.into()),
                 }
+            };
+            if n == 0 {
+                break;
             }
-            Ok(_) => {}
-            Err(e) if e.kind() == std::io::ErrorKind::TimedOut => {}
-            Err(e) => return Err(e.into()),
+            if let Some(tx) = &self.ws_tx {
+                let _ = tx.send(buf[..n].to_vec());
+            }
+            for &b in buf.iter().take(n) {
+                self.read_commands(b);
+            }
         }
 
         let now = Instant::now();
@@ -214,7 +233,7 @@ impl Ultradrive {
             // Standard Behringer Header: [0xF0, 0x00, 0x20, 0x32, ID]
             // We check the first 4 bytes.
             let vendor_header = [0xF0, 0x00, 0x20, 0x32];
-            if self.serial_read < 5 || self.serial_buffer[..4] != vendor_header {
+            if self.serial_read <= PARAM_COUNT_BYTE || self.serial_buffer[..4] != vendor_header {
                 return;
             }
 
@@ -254,7 +273,7 @@ impl Ultradrive {
                         .copy_from_slice(&self.serial_buffer[..PING_RESPONSE_LENGTH]);
                 }
                 DIRECT_COMMAND => {
-                    let count = self.serial_buffer[PARAM_COUNT_BYTE] as usize;
+                    let count = param_count(&self.serial_buffer[..self.serial_read]);
                     log::info!("Received direct commands: {}", count);
                     for i in 0..count {
                         let offset = 4 * i;
@@ -399,25 +418,40 @@ impl Ultradrive {
     }
 
     pub fn process_outgoing(&mut self, data: &[u8]) -> Result<()> {
+        // Like the Arduino version, the body may hold several messages, each
+        // ending with TERMINATOR (a missing final TERMINATOR is added).
+        for chunk in data.split_inclusive(|&b| b == TERMINATOR) {
+            let mut message = chunk.to_vec();
+            if message.last() != Some(&TERMINATOR) {
+                message.push(TERMINATOR);
+            }
+            self.process_outgoing_message(&message)?;
+        }
+        Ok(())
+    }
+
+    fn process_outgoing_message(&mut self, data: &[u8]) -> Result<()> {
         // Standard Behringer Header: [0xF0, 0x00, 0x20, 0x32, ID]
         // We only check the first 4 bytes to allow any device ID.
         let vendor_header = [0xF0, 0x00, 0x20, 0x32];
-        if data.len() < 5 || data[..4] != vendor_header {
+        if data.len() <= PARAM_COUNT_BYTE || data[..4] != vendor_header {
             return Ok(());
         }
 
-        let command = data[COMMAND_BYTE];
-        if command == DIRECT_COMMAND {
-            self.invalidate_sync = true;
-            let count = data[PARAM_COUNT_BYTE] as usize;
-            for i in 0..count {
-                let offset = 4 * i;
-                let channel = data[CHANNEL_BYTE + offset];
-                let param = data[PARAM_BYTE + offset];
-                let value_high = data[VALUE_HI_BYTE + offset];
-                let value_low = data[VALUE_LOW_BYTE + offset];
-                self.patch_buffer_skeleton(channel, param, value_high, value_low);
-            }
+        // The Arduino version only forwards direct commands to the device.
+        if data[COMMAND_BYTE] != DIRECT_COMMAND {
+            return Ok(());
+        }
+
+        self.invalidate_sync = true;
+        let count = param_count(data);
+        for i in 0..count {
+            let offset = 4 * i;
+            let channel = data[CHANNEL_BYTE + offset];
+            let param = data[PARAM_BYTE + offset];
+            let value_high = data[VALUE_HI_BYTE + offset];
+            let value_low = data[VALUE_LOW_BYTE + offset];
+            self.patch_buffer_skeleton(channel, param, value_high, value_low);
         }
 
         if let Some(port) = self.port.as_mut() {
@@ -448,5 +482,68 @@ impl Ultradrive {
 
     pub fn get_port_active(&self) -> Option<&dyn SerialPort> {
         self.port.as_deref()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn direct_command(params: &[[u8; 4]]) -> Vec<u8> {
+        let mut msg = vec![0xF0, 0x00, 0x20, 0x32, 0x00, 0x0E, DIRECT_COMMAND];
+        msg.push(params.len() as u8);
+        for p in params {
+            msg.extend_from_slice(p);
+        }
+        msg.push(TERMINATOR);
+        msg
+    }
+
+    #[test]
+    fn param_count_is_capped_to_message_length() {
+        let mut msg = direct_command(&[[1, 2, 0, 5]]);
+        assert_eq!(param_count(&msg), 1);
+        msg[PARAM_COUNT_BYTE] = 0xFF;
+        assert_eq!(param_count(&msg), 1);
+    }
+
+    #[test]
+    fn corrupt_count_from_device_does_not_panic() {
+        let mut dcx = Ultradrive::new(None);
+        let mut msg = direct_command(&[[1, 2, 0, 5]]);
+        msg[PARAM_COUNT_BYTE] = 0xFF;
+        for b in msg {
+            dcx.read_commands(b);
+        }
+    }
+
+    #[test]
+    fn input_d_high_params_patch_part_0() {
+        // Input D (channel 4), param 50 -> INPUT_LOCATIONS[3][48]: low byte 0/681.
+        let mut dcx = Ultradrive::new(None);
+        dcx.process_outgoing(&direct_command(&[[4, 50, 0, 0x55]]))
+            .unwrap();
+        assert_eq!(dcx.dump0[681], 0x55);
+        assert_eq!(dcx.dump1[681], 0);
+    }
+
+    #[test]
+    fn outgoing_body_with_several_messages_patches_all() {
+        let mut dcx = Ultradrive::new(None);
+        let mut body = direct_command(&[[1, 2, 0, 0x11]]);
+        body.extend(direct_command(&[[5, 2, 0, 0x22]]));
+        dcx.process_outgoing(&body).unwrap();
+        assert_eq!(dcx.dump0[146], 0x11);
+        assert_eq!(dcx.dump0[713], 0x22);
+    }
+
+    #[test]
+    fn non_direct_command_is_ignored() {
+        let mut dcx = Ultradrive::new(None);
+        let mut msg = direct_command(&[[1, 2, 0, 0x11]]);
+        msg[COMMAND_BYTE] = 0x50;
+        dcx.process_outgoing(&msg).unwrap();
+        assert!(!dcx.invalidate_sync);
+        assert_eq!(dcx.dump0[146], 0);
     }
 }

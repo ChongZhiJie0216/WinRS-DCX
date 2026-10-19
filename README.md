@@ -37,7 +37,7 @@ Use Docker to build for your specific architecture:
 chmod +x scripts/cross-build.sh
 ./scripts/cross-build.sh
 ```
-Binaries will be generated in `duinodcx-rs/target/`.
+Binaries will be generated in `target/<target>/release/WinRS-DCX-Management` (e.g. `target/aarch64-unknown-linux-musl/release/`).
 
 #### 3. Installation
 Copy the binary to `/usr/bin/duinodcx` on your router and ensure it has execute permissions. 
@@ -56,7 +56,7 @@ Ensure you have [Rust and Cargo](https://rustup.rs/) installed.
 Run `scripts\build.cmd`. This will compile the Rust application and produce `WinRS-DCX-Management.exe` in the root.
 
 ### UI Development
-The UI is located in `dcx-ui-old`. If you modify it, run `npm run build` inside that folder to refresh the embedded assets.
+The embedded UI is the serial-port version of dcx-ui in `node_modules/dcx-ui/dist` (tracked in git). Replace the files there and rebuild the executable to update it. The new Dioxus UI in `dcx-ui/` is still work in progress and is not embedded yet.
 
 ## Acknowledgements
 * **Lasse Lukkari** - Creator of the original DuinoDCX and dcx-ui.

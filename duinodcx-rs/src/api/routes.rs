@@ -33,17 +33,21 @@ pub struct VersionResponse {
     pub build_date: String,
 }
 
+// Field names follow the Arduino API (apSsid, apPassword, ...) used by dcx-ui.
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SettingsResponse {
     pub ap_ssid: String,
     pub ap_password: String,
     pub auth: String,
     pub mdns_host: String,
     pub flow_control: String,
+    #[serde(rename = "autoDisableAP")]
     pub auto_disable_ap: String,
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SettingsUpdate {
     pub ap_ssid: String,
     pub ap_password: String,

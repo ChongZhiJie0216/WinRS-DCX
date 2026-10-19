@@ -1,33 +1,26 @@
-FROM rust:1.75-slim
+# Cross-compile duinodcx for OpenWRT / iStoreOS (static musl binaries).
+# Used by scripts/cross-build.sh. The UI is already built and tracked in git
+# (node_modules/dcx-ui/dist), so Node.js is not needed here.
+FROM rust:1.90-slim
 
-# Install dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
     curl \
-    git \
-    pkg-config \
-    libssl-dev \
-    python3 \
-    pip \
+    xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Zig for cross-compilation
-RUN curl -L https://ziglang.org/download/0.11.0/zig-linux-x86_64-0.11.0.tar.xz | tar -xJ -C /usr/local
-ENV PATH="/usr/local/zig-linux-x86_64-0.11.0:${PATH}"
+# Zig is the C toolchain/linker used by cargo-zigbuild
+RUN curl -fsSL https://ziglang.org/download/0.13.0/zig-linux-x86_64-0.13.0.tar.xz | tar -xJ -C /opt
+ENV PATH="/opt/zig-linux-x86_64-0.13.0:${PATH}"
 
-# Install cargo-zigbuild
-RUN cargo install cargo-zigbuild
+RUN rustup target add \
+    aarch64-unknown-linux-musl \
+    armv7-unknown-linux-musleabihf \
+    x86_64-unknown-linux-musl
 
-# Install Node.js for UI build
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs
+RUN cargo install --locked cargo-zigbuild
 
 WORKDIR /app
 
-# Pre-build UI
-COPY package.json .
-COPY dcx-ui-old/package.json dcx-ui-old/
-RUN npm install
-RUN cd dcx-ui-old && npm install
-
-# Command to build everything
-CMD cd dcx-ui-old && npm run build && cd .. && cargo zigbuild --release --target $TARGET
+ENV TARGET=aarch64-unknown-linux-musl
+CMD cargo zigbuild --release -p duinodcx-management --target "$TARGET"

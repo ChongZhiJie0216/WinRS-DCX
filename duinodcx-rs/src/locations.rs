@@ -2255,7 +2255,7 @@ pub const INPUT_LOCATIONS: [[DataLocation; 62]; 4] = [
             high: HighByte { part: 0, byte: 680 },
         },
         DataLocation {
-            low: LowByte { part: 1, byte: 681 },
+            low: LowByte { part: 0, byte: 681 },
             middle: MiddleBit {
                 part: -1,
                 byte: -1,
@@ -2264,7 +2264,7 @@ pub const INPUT_LOCATIONS: [[DataLocation; 62]; 4] = [
             high: HighByte { part: -1, byte: -1 },
         },
         DataLocation {
-            low: LowByte { part: 1, byte: 683 },
+            low: LowByte { part: 0, byte: 683 },
             middle: MiddleBit {
                 part: 0,
                 byte: 684,
@@ -2273,7 +2273,7 @@ pub const INPUT_LOCATIONS: [[DataLocation; 62]; 4] = [
             high: HighByte { part: 0, byte: 685 },
         },
         DataLocation {
-            low: LowByte { part: 1, byte: 686 },
+            low: LowByte { part: 0, byte: 686 },
             middle: MiddleBit {
                 part: -1,
                 byte: -1,
@@ -2282,7 +2282,7 @@ pub const INPUT_LOCATIONS: [[DataLocation; 62]; 4] = [
             high: HighByte { part: -1, byte: -1 },
         },
         DataLocation {
-            low: LowByte { part: 1, byte: 688 },
+            low: LowByte { part: 0, byte: 688 },
             middle: MiddleBit {
                 part: -1,
                 byte: -1,
@@ -2291,7 +2291,7 @@ pub const INPUT_LOCATIONS: [[DataLocation; 62]; 4] = [
             high: HighByte { part: -1, byte: -1 },
         },
         DataLocation {
-            low: LowByte { part: 1, byte: 690 },
+            low: LowByte { part: 0, byte: 690 },
             middle: MiddleBit {
                 part: 0,
                 byte: 692,
@@ -2300,7 +2300,7 @@ pub const INPUT_LOCATIONS: [[DataLocation; 62]; 4] = [
             high: HighByte { part: 0, byte: 691 },
         },
         DataLocation {
-            low: LowByte { part: 1, byte: 693 },
+            low: LowByte { part: 0, byte: 693 },
             middle: MiddleBit {
                 part: -1,
                 byte: -1,
@@ -2309,7 +2309,7 @@ pub const INPUT_LOCATIONS: [[DataLocation; 62]; 4] = [
             high: HighByte { part: -1, byte: -1 },
         },
         DataLocation {
-            low: LowByte { part: 1, byte: 695 },
+            low: LowByte { part: 0, byte: 695 },
             middle: MiddleBit {
                 part: 0,
                 byte: 700,
@@ -2318,7 +2318,7 @@ pub const INPUT_LOCATIONS: [[DataLocation; 62]; 4] = [
             high: HighByte { part: 0, byte: 696 },
         },
         DataLocation {
-            low: LowByte { part: 1, byte: 697 },
+            low: LowByte { part: 0, byte: 697 },
             middle: MiddleBit {
                 part: -1,
                 byte: -1,
@@ -2327,7 +2327,7 @@ pub const INPUT_LOCATIONS: [[DataLocation; 62]; 4] = [
             high: HighByte { part: -1, byte: -1 },
         },
         DataLocation {
-            low: LowByte { part: 1, byte: 699 },
+            low: LowByte { part: 0, byte: 699 },
             middle: MiddleBit {
                 part: -1,
                 byte: -1,
@@ -2336,7 +2336,7 @@ pub const INPUT_LOCATIONS: [[DataLocation; 62]; 4] = [
             high: HighByte { part: -1, byte: -1 },
         },
         DataLocation {
-            low: LowByte { part: 1, byte: 702 },
+            low: LowByte { part: 0, byte: 702 },
             middle: MiddleBit {
                 part: 0,
                 byte: 708,
@@ -2345,7 +2345,7 @@ pub const INPUT_LOCATIONS: [[DataLocation; 62]; 4] = [
             high: HighByte { part: 0, byte: 703 },
         },
         DataLocation {
-            low: LowByte { part: 1, byte: 704 },
+            low: LowByte { part: 0, byte: 704 },
             middle: MiddleBit {
                 part: -1,
                 byte: -1,
@@ -2354,7 +2354,7 @@ pub const INPUT_LOCATIONS: [[DataLocation; 62]; 4] = [
             high: HighByte { part: -1, byte: -1 },
         },
         DataLocation {
-            low: LowByte { part: 1, byte: 706 },
+            low: LowByte { part: 0, byte: 706 },
             middle: MiddleBit {
                 part: 0,
                 byte: 708,
@@ -2363,7 +2363,7 @@ pub const INPUT_LOCATIONS: [[DataLocation; 62]; 4] = [
             high: HighByte { part: 0, byte: 707 },
         },
         DataLocation {
-            low: LowByte { part: 1, byte: 709 },
+            low: LowByte { part: 0, byte: 709 },
             middle: MiddleBit {
                 part: -1,
                 byte: -1,
@@ -2372,7 +2372,7 @@ pub const INPUT_LOCATIONS: [[DataLocation; 62]; 4] = [
             high: HighByte { part: -1, byte: -1 },
         },
         DataLocation {
-            low: LowByte { part: 1, byte: 711 },
+            low: LowByte { part: 0, byte: 711 },
             middle: MiddleBit {
                 part: -1,
                 byte: -1,

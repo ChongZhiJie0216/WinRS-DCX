@@ -61,13 +61,18 @@ impl ConnectionManager {
                             continue;
                         }
 
-                        let mut dm = device_manager.lock().await;
-                        if dm.get_port_active().is_none() {
+                        // Only hold the device lock for the check, not while priming/opening,
+                        // so the web API and the serial loop are not blocked.
+                        let port_active = device_manager.lock().await.get_port_active().is_some();
+                        if !port_active {
                             if attempt_count >= max_attempts {
-                                log::warn!(
-                                    "Connection timeout reached for {}. Stopping auto-reconnect.",
-                                    port_name
-                                );
+                                if attempt_count == max_attempts {
+                                    attempt_count += 1;
+                                    log::warn!(
+                                        "Connection timeout reached for {}. Stopping auto-reconnect.",
+                                        port_name
+                                    );
+                                }
                                 continue;
                             }
 
@@ -111,7 +116,7 @@ impl ConnectionManager {
                                     let _ = port.write_request_to_send(true);
                                     let _ = port.clear(serialport::ClearBuffer::All);
 
-                                    dm.set_port(port);
+                                    device_manager.lock().await.set_port(port);
                                     attempt_count = 0;
                                 }
                                 Err(e) => {
